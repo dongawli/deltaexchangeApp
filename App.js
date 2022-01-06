@@ -15,10 +15,9 @@ export default class App extends Component {
     this.state = {
       loading: false,
       loadText: 'Loading data, Please wait...',
-      tableHead: ['Symbol','Description', 'Underlying Asset', 'Mark Price'],
+      tableHead: ['Symbol','Description', 'Underlying Asset', 'Mark Price'], //Row Header
       widthArr: [100, 100, 80, 80],
-      productsArray:[],
-      //columnArray:['Symbol','P-MATIC-2.2-050122','P-MATIC-2.2-050122','P-MATIC-2.2-050122','P-MATIC-2.2-050122','P-MATIC-2.2-050122','P-MATIC-2.2-050122','P-MATIC-2.2-050122'],
+      productsArray:[], 
       message: 'No message from server.',
       connected: ws.connected,
       totalRows:'loading...'
@@ -34,36 +33,36 @@ export default class App extends Component {
   componentDidMount() {
     console.log('App.js>>>>>>componentDidMount>>>>>>');
     this.setState({loading: true},()=>{this.fetchFunction()});
+    
+    //WebSocket On Open handler
     ws.onopen = () => {
-    //connection opened
       console.log(">>>>>>>ws.opened");
-      ws.send(JSON.stringify({"type": "subscribe", "payload": {"channels": [{"name": "v2/ticker","symbols": ["P-BNB-460-210122","C-BNB-460-140122","P-BNB-460-140122","C-BNB-460-070122","P-BNB-460-070122","C-BNB-460-280122"]}]}})); // send a message
-      //ws.send(JSON.stringify({"type": "ping"}));
+      ws.send(JSON.stringify({"type": "ping"}));
     };
 
+    //WebSocket On Message handler
     ws.onmessage = (e) => {
       // a message was received
-      console.log(">>>ws.onmessage"+JSON.stringify(e));
+      //console.log(">>>ws.onmessage"+JSON.stringify(e));
       this.setState({connected:true});
       if(e.data != null) {
         var formattedData = JSON.parse(e.data);
         if(formattedData.symbol) {
           console.log("formattedData.Symbol>>>"+formattedData.symbol+"::"+formattedData.mark_price);
           this.updateRow(formattedData.symbol, formattedData.mark_price);
-        } else if(formattedData.type =='pong') {
-          /*var tempproductSymbolsArray = ["P-BNB-460-210122","C-BNB-460-140122","P-BNB-460-140122","C-BNB-460-070122","P-BNB-460-070122","C-BNB-460-280122"];
-          this.subscribeToDataExchangeChannel(tempproductSymbolsArray);*/
-        }
+        } 
       }
       
     };
 
+    //WebSocket On Error handler
     ws.onerror = (e) => {
       // an error occurred
-      console.log(">>>ws.onerror"+JSON.stringify(e));
+     console.log(">>>ws.onerror"+JSON.stringify(e));
      console.log("error:"+e.message);
     };
 
+    //WebSocket On Close handler
     ws.onclose = (e) => {
       // connection closed
       console.log(">>>ws.onclose"+JSON.stringify(e));
@@ -72,19 +71,18 @@ export default class App extends Component {
     
   }
 
+  //calling this method after data fetch to subscribe to the channel 
   subscribeToDataExchangeChannel(productSymbolsArray) {
-    console.log(">>>>>subscribeToDataExchangeChannel()>>>>" + productSymbolsArray.length);
     var symbolArray = productSymbolsArray.map(item => {
        return "\"" + item + "\""
     }).join(',');
-    console.log(">>>>>>symbolArray::"+symbolArray);
     var payload = '{"type": "subscribe", "payload": {"channels": [{"name": "v2/ticker","symbols": [' 
                     + symbolArray 
                   + ']}]}}'; 
     ws.send(JSON.stringify(payload)); // send a message
-    console.log(">>>>>>subscribeToDataExchangeChannel end>>>>>")
   }
 
+  //Updating marked price cell data  
   updateRow(symbolName, mark_price) {
     const index = this.state.productsArray.findIndex((item)=> item[0] === symbolName); 
     if(index > -1) {
@@ -104,6 +102,8 @@ export default class App extends Component {
      underlying_asset: item.underlying_asset.name, 
      markprice: item.strike_price});
   */
+
+  //Fetch the data from server and set the table Data
   fetchFunction() {
     fetch('https://api.delta.exchange/v2/products',{
       method: 'GET',
@@ -116,11 +116,9 @@ export default class App extends Component {
         var tempproductsArray = [];
         var tempproductSymbolsArray = [];
         var responseArray = responseJson.result.map(item => {
-          
           tempproductsArray.push([item.symbol,item.description, item.underlying_asset.symbol,'']);
           tempproductSymbolsArray.push(item.symbol);
         });
-        console.log("tempproductsArray>>>>>"+tempproductsArray.length );
         this.setState({
           loadText:'Generating table, PLease wait',  
         },()=>{
@@ -129,7 +127,6 @@ export default class App extends Component {
             productsArray:tempproductsArray,
             totalRows:tempproductsArray.length
           },()=>{
-            //console.log("productsArray>>>>>"+JSON.stringify(this.state.columnArray));
             this.subscribeToDataExchangeChannel(tempproductSymbolsArray);
           });  
         });
@@ -150,7 +147,9 @@ export default class App extends Component {
         <Text>State: { this.state.connected ? 'Connected' : 'Disconnected' }</Text>
         <Text>Total Rows: { this.state.totalRows }</Text>
 
-        {/* <ScrollView style={{height:'90%'}} horizontal={true}> 
+        {
+          //Code for sticky column
+          /* <ScrollView style={{height:'90%'}} horizontal={true}> 
           </ScrollView>
           <View style={{flexDirection:'row', height:'90%'}}>
             <Table borderStyle={{borderWidth: 1, borderColor: '#C1C0B9'}}>
@@ -184,7 +183,7 @@ export default class App extends Component {
                               key={index}
                               data={rowData}
                               widthArr={state.widthArr}
-                              style={[styles.row, 0 && {backgroundColor: 'red'}]}
+                              style={[styles.row, 0 && {backgroundColor: '#537791'}]}
                               textStyle={styles.textRow}
                             />
                           ))
@@ -193,9 +192,6 @@ export default class App extends Component {
                     </ScrollView>
                 </View>
               </ScrollView>
-
-              
-              
           }
           
       </View>
